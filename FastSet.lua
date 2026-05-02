@@ -1,5 +1,5 @@
 script_name("{e6953e}Fast Full Set {ffffff}by yargoff")
-script_version("1.5")
+script_version("1.5.0.1")
 script_author('yargoff')
 
 local hotkey = require('mimhotkey') -- подключаем библиотеку
@@ -35,6 +35,10 @@ local function test_message(text)
     end
     sampAddChatMessage(smile .. ' {ff0000}[DEBUG MESSAGE] ' .. tag .. ' ' .. text, 0xff0000)
 end
+--------------------------------------------------------------------------------------------------
+local update_log = {
+    '1. Добавлены аксы для кладов',
+}
 
 local fullacs = {
     {
@@ -63,6 +67,13 @@ local fullacs = {
     ['Энегетические часы'] = '8005',
     ['Рука бесконечности'] = '4001',
     ['Полицейская кобура'] = '9818',
+    ['Обычный металлоискатель'] = '8667',
+    ['Персональный металлоискатель'] = '8668',
+    ['Улучшенный металлоискатель'] = '8669',
+    ['Профессиональный металлоискатель'] = '8670',
+    ['Демонический металлоискатель'] = '8671',
+    ['Космический металлоискатель'] = '8672',
+    
 },  
     {
     ['Ожерелье медведя'] = '9581',
@@ -80,6 +91,8 @@ local fullacs = {
     ['Летучий Голладец'] = '8760',
     ['Энергетический КУРА шар'] = '8178',
     ['Полицейские наручники'] = '9845',
+    ['Дудец'] = '8438',
+    [''] = '',
 },
     {
     ['Плащ медведя'] = '9578',
@@ -87,6 +100,7 @@ local fullacs = {
     ['Энергетический щит'] = '7253',
     ['Золотая монтировка'] = '8801',
     ['Щит полицейского'] = '9836',
+    ['Супер-лопата'] = '4786',
 },
     {
     ['Броня медведя'] = '9560',
@@ -99,7 +113,7 @@ local fullacs = {
     ['Чемодан криминала'] = '8794',
     ['Полицейская рация'] = '9821',
 }}
-
+--------------------------------------------------------------------------------------------------
 function json(filePath)
     local filePath = getWorkingDirectory()..'\\config\\'..(filePath:find('(.+).json') and filePath or filePath..'.json')
     local class = {}
@@ -138,6 +152,7 @@ end
 local base_name = 'FastFullSet'
 local settings = json(base_name .. '.json'):Load({
     autoUpdateScript = false,
+    version = '', checkversion = 0,
     sets = {
         {   nameset = 'Base',
 
@@ -172,11 +187,12 @@ local settings = json(base_name .. '.json'):Load({
         }
     }
 })
-local function save_config()
+local function save_settings()
     local status, code = json(base_name .. '.json'):Save(settings)
     return status, code
 end
 
+--------------------------------------------------------------------------------------------------
 -- https://github.com/qrlk/moonloader-script-updater
 local enable_autoupdate = settings.autoUpdateScript -- false to disable auto-update + disable sending initial telemetry (server, moonloader version, script version, samp nickname, virtual volume serial number)
 local autoupdate_loaded = false
@@ -186,18 +202,20 @@ if enable_autoupdate then
     if updater_loaded then
         autoupdate_loaded, Update = pcall(Updater)
         if autoupdate_loaded then
-            Update.json_url = "https://raw.githubusercontent.com/yarg0/FinkoVoz-For-Maf-/main/version.json?" .. tostring(os.clock())
+            Update.json_url = "https://raw.githubusercontent.com/yarg0/Fast-Full-Set/main/version.json?" .. tostring(os.clock())
             Update.prefix = "[" .. string.upper(thisScript().name) .. "]: "
-            Update.url = "https://github.com/yarg0/FinkoVoz-For-Maf-/"
+            Update.url = "https://github.com/yarg0/Fast-Full-Set/"
         end
     end
 end
 
+---------------------------------------- LOCAL SETTINGS ------------------------------------------
 local autoUpdateScript = imgui.new.bool(settings.autoUpdateScript)
 local creconfig = imgui.new.char[256]()
 local customnameacs = imgui.new.char[256]()
 local customidacs = imgui.new.char[256]()
 
+--------------------------------------------------------------------------------------------------
 local renderWindow = imgui.new.bool(false)
 imgui.OnInitialize(function()
     imgui.GetIO().IniFilename = nil
@@ -217,6 +235,23 @@ local newFrame = imgui.OnFrame(
         imgui.SetNextWindowPos(imgui.ImVec2(resX / 2, resY / 2), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
         imgui.SetNextWindowSize(imgui.ImVec2(sizeX, sizeY), imgui.Cond.FirstUseEver)
         if imgui.Begin('Fast Full Set', renderWindow, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoScrollbar + imgui.WindowFlags.NoResize) then
+
+            if settings.checkversion == 0 then
+                imgui.OpenPopup('Change Log##updatemessage')
+            end
+            if imgui.BeginPopupModal(u8"Change Log##updatemessage", _, imgui.WindowFlags.NoCollapse + imgui.WindowFlags.NoScrollbar) then
+                --imgui.SetWindowSize(imgui.ImVec2(150, 200))
+                imgui.Text(u8('Нововведения / Изменения в скрипте. ver: ' .. thisScript().version))
+                for i, v in pairs(update_log) do
+                    imgui.Text(u8(v))
+                end
+                if imgui.Button(u8'Закрыть') then
+                    settings.checkversion = 1
+                    save_settings()
+                    imgui.CloseCurrentPopup()
+                end
+                imgui.EndPopup()
+            end
 
             if imgui.Checkbox(faicons('download')..(u8' Автообновление скрипта'), autoUpdateScript) then
                 settings.autoUpdateScript = autoUpdateScript[0]
@@ -241,7 +276,7 @@ local newFrame = imgui.OnFrame(
                     local newKey = hotkey.KeyEditor('bind_' .. i, u8('Бинд для '..v.nameset))
                     if newKey then
                         v.id_bind = newKey
-                        save_config()
+                        save_settings()
                     end
 
                     for slotNum = 1, 8 do
@@ -281,7 +316,7 @@ local newFrame = imgui.OnFrame(
                                     if imgui.Button(u8(name)) then
                                         setting[idField] = id
 
-                                        local status, code = save_config()
+                                        local status, code = save_settings()
                                         message((status and (' Слот ' .. slotNum .. ': "' .. name .. '" (ID: ' .. id .. ') сохранён!')
                                             or (' Не смог сохранить: ' .. code)))
                                         imgui.CloseCurrentPopup()
@@ -298,8 +333,8 @@ local newFrame = imgui.OnFrame(
                                 local name = u8:decode(ffi.string(customnameacs))
                                 setting[idField] = id
                                 
-                                save_config()
-                                local status, code = save_config()
+                                save_settings()
+                                local status, code = save_settings()
                                 message((status and (' Слот ' .. slotNum .. ': "' .. name .. '" (ID: ' .. id .. ') сохранён!')
                                     or (' Не смог сохранить: ' .. code)))
                                 imgui.CloseCurrentPopup()
@@ -314,7 +349,7 @@ local newFrame = imgui.OnFrame(
 
                     if imgui.Button(u8'Удалить конфиг') then
                         table.remove(settings.sets, i)
-                        save_config()
+                        save_settings()
                     end
 
                 end
@@ -333,6 +368,12 @@ function main()
 
     if autoupdate_loaded and enable_autoupdate and Update then
         pcall(Update.check, Update.json_url, Update.prefix, Update.url)
+    end
+
+    if settings.version ~= thisScript().version then
+        settings.version = thisScript().version
+        settings.checkversion = 0
+        save_settings()
     end
 
     message('Скрипт загружен!')
@@ -354,7 +395,7 @@ function main()
         end
 
         table.remove(settings.sets, arg)
-        save_config()
+        save_settings()
     end)
 
     for i, set in ipairs(settings.sets) do
@@ -413,7 +454,7 @@ function create_config(arg)
         id_bind = {48}
 
     })
-    local status, code = save_config()
+    local status, code = save_settings()
     message('Новый конфиг - ' .. arg .. ' -> ' .. (status and 'создан' or 'не смог создасться ' .. code))
 end
 
@@ -467,7 +508,7 @@ addEventHandler('onReceivePacket', function (id, bs)
                     end
                 end
 
-                local status, code = save_config()
+                local status, code = save_settings()
                 if not status then
                     sampAddChatMessage(tag .. ' Ошибка сохранения настроек: ' .. code, base_color)
                 end
@@ -600,290 +641,3 @@ function theme() -- Стиль mimgui
     colors[clr.TextSelectedBg]         = ImVec4(1.00, 0.32, 0.32, 1.00);
     colors[clr.ModalWindowDimBg]       = ImVec4(0.26, 0.26, 0.26, 0.60);
 end
-
---[[
-local name_conf = imgui.new.char[256]() -- создаём буфер для инпута
-
-local currentConfig = 'FastFullSet'
-local pendingConfig = nil
-local CONFIG_PREFIX = 'ffs_'
-function Create_config(name)
-
-    if not name or name == '' then return end
-
-    local dir = getWorkingDirectory() .. '\\config\\'
-    local fileName = CONFIG_PREFIX .. name .. '.json'
-    local path = dir .. fileName
-
-    if not doesDirectoryExist(dir) then
-        createDirectory(dir)
-    end
-
-    if doesFileExist(path) then
-        sampAddChatMessage('Файл уже существует!', -1)
-        return
-    end
-
-    local default = {
-        Acs1 = '0',
-        Acs2 = '0',
-        Acs3 = '0',
-        Acs4 = '0',
-        Acs5 = '0',
-        Acs6 = '0',
-        Acs7 = '0',
-        Acs8 = '0',
-
-        slotAcs1 = '',
-        slotAcs2 = '',
-        slotAcs3 = '',
-        slotAcs4 = '',
-        slotAcs5 = '',
-        slotAcs6 = '',
-        slotAcs7 = '',
-        slotAcs8 = '',
-
-        typeInv1 = '0',
-        typeInv2 = '0',
-        typeInv3 = '0',
-        typeInv4 = '0',
-        typeInv5 = '0',
-        typeInv6 = '0',
-        typeInv7 = '0',
-        typeInv8 = '0',
-
-        id_bind = {48}
-    }
-    local status, code = json(CONFIG_PREFIX .. name):Save(default)
-
-    sampAddChatMessage(
-        status and ('Создан конфиг: ' .. name) or ('Ошибка: ' .. code),
-        -1
-    )
-
-end
-function Delete_config(query)
-    if not query or query == '' then
-        sampAddChatMessage('Укажи название конфига!', -1)
-        return
-    end
-
-    local list = GetAllConfigs()
-
-    local normalizedQuery = query:lower():gsub('%s+', ' '):gsub('^%s*(.-)%s*$', '%1')
-
-    local foundName = nil
-    local matchCount = 0
-
-    for _, cfg in ipairs(list) do
-        local normalizedName = cfg:lower():gsub('%s+', ' ')
-
-        if string.find(normalizedName, normalizedQuery, 1, true) then
-            matchCount = matchCount + 1
-            foundName = cfg
-
-            if matchCount > 1 then
-                sampAddChatMessage('Найдено несколько конфигов. Уточните запрос.', -1)
-                return
-            end
-        end
-    end
-
-    if not foundName then
-        sampAddChatMessage('Конфиг не найден!', -1)
-        return
-    end
-
-    local path = getWorkingDirectory() .. '\\config\\' .. CONFIG_PREFIX .. foundName .. '.json'
-
-    if not doesFileExist(path) then
-        sampAddChatMessage('Файл не существует!', -1)
-        return
-    end
-
-    local ok = os.remove(path)
-
-    if ok then
-        sampAddChatMessage('Конфиг удалён: ' .. foundName, -1)
-    else
-        sampAddChatMessage('Ошибка удаления файла!', -1)
-    end
-end
-function GetAllConfigs()
-    local dir = getWorkingDirectory() .. '\\config\\' .. CONFIG_PREFIX .. '*.json'
-    local list = {}
-
-    local handle, name = findFirstFile(dir)
-
-    if handle == -1 or not name then
-        return {}
-    end
-
-    while name do
-        if type(name) == 'string' then
-            local clean = name
-                :gsub('%.json$', '')
-                :gsub('^' .. CONFIG_PREFIX, '')
-
-            if clean ~= '' then
-                table.insert(list, clean)
-            end
-        end
-
-        name = findNextFile(handle)
-    end
-
-    findClose(handle)
-
-    return list
-end
-function loadConfig(name)
-    if not name or name == '' then return end
-
-    currentConfig = name
-
-    settings = json(CONFIG_PREFIX .. name):Load({
-        Acs1 = '0', Acs2 = '0', Acs3 = '0', Acs4 = '0',
-        Acs5 = '0', Acs6 = '0', Acs7 = '0', Acs8 = '0',
-
-        slotAcs1 = '', slotAcs2 = '', slotAcs3 = '', slotAcs4 = '',
-        slotAcs5 = '', slotAcs6 = '', slotAcs7 = '', slotAcs8 = '',
-
-        typeInv1 = '0', typeInv2 = '0', typeInv3 = '0', typeInv4 = '0',
-        typeInv5 = '0', typeInv6 = '0', typeInv7 = '0', typeInv8 = '0',
-
-        id_bind = {48}
-    })
-
-    sampAddChatMessage(tag .. ' Загружен конфиг: ' .. name, base_color)
-end
-
-imgui.PushItemWidth(150)
-imgui.InputText(u8"Название конфига", name_conf, 256)
-imgui.PushItemWidth(0)
-if imgui.Button(u8'Создать конфиг') then
-    local name = u8:decode(ffi.string(name_conf))
-    Create_config(name)
-end
-
-local list = GetAllConfigs() or {}
-
-if imgui.CollapsingHeader(u8'Список конфигов (LIVE):') then
-
-    if #list == 0 then
-        imgui.Text(u8'Конфиги не найдены')
-    else
-        for i, name in ipairs(list) do
-
-            local isActive = (name == currentConfig)
-
-            if isActive then
-                imgui.TextColored(imgui.ImVec4(0, 1, 0, 1), u8('[ACTIVE] ' .. name))
-            end
-
-            if imgui.Button(u8('Загрузить##' .. name)) then
-                pendingConfig = name
-            end
-
-            if pendingConfig then
-                loadConfig(pendingConfig)
-                pendingConfig = nil
-            end
-
-        end
-    end
-end
-if #list > 0 then
-    for i, name in ipairs(list) do
-        if imgui.CollapsingHeader(u8('Конфиг: ' .. name .. '##' .. i)) then
-            if imgui.Button(u8'Удалить конфиг##' .. i) then
-                Delete_config(name)
-            end
-            
-        end
-    end
-end
-
-sampRegisterChatCommand('crfile', function (arg)
-    if not arg or arg == '' then
-        return
-    end
-
-    Create_config(arg)
-end)
-sampRegisterChatCommand('checklist', function ()
-    local list = GetAllConfigs()
-
-    if #list == 0 then
-        sampAddChatMessage('Конфиги не найдены', -1)
-        return
-    end
-
-    sampAddChatMessage('Список конфигов:', -1)
-
-    for i, name in ipairs(list) do
-        sampAddChatMessage(i .. '. ' .. name, -1)
-    end
-end)
-sampRegisterChatCommand('delcfg', function (arg)
-    Delete_config(arg)
-end)
-
-
-
-
-]]
-
---[[
-if imgui.CollapsingHeader(u8'##111') then
-                for slotNum = 1, 8 do
-                    -- Получаем ID аксессуара для текущего слота из настроек
-                    local acsId = settings['Acs' .. slotNum]
-                    local acsName = nil
-
-                    -- Проверяем, существует ли таблица для этого слота
-                    if fullacs[slotNum] then
-                        -- Ищем название аксессуара по ID в таблице для текущего слота
-                        for name, id in pairs(fullacs[slotNum]) do
-                            if id == acsId then
-                                acsName = name
-                                break
-                            end
-                        end
-                    end
-
-                    -- Формируем текст для отображения
-                    local displayText
-                    if acsName then
-                        displayText = u8(slotNum .. ' слот - ' .. acsName .. ' (ID: ' .. acsId .. ')')
-                    else
-                        displayText = u8(slotNum .. ' слот - не выбран')
-                    end
-
-                    imgui.Text(displayText)
-
-                    if imgui.CollapsingHeader(u8'Доступные аксессуары на выбор##'..slotNum) then
-                        -- Получаем ID аксессуара для текущего слота из настроек
-                        local settingField = 'Acs' .. slotNum
-
-                        local keys = {}
-                        for k in pairs(fullacs[slotNum]) do
-                            table.insert(keys, k)
-                        end
-
-                        for i, v in pairs(keys) do
-                            if imgui.Button(u8(v)) then
-                                matchedId = fullacs[slotNum][v]
-                                settings[settingField] = matchedId
-                                local status, code = save_config()
-                                sampAddChatMessage(tag .. 
-                                (status and ' Слот ' .. slotNum .. ': "' .. v .. '" (ID: ' .. matchedId .. ') сохранён!'
-                                or ' Не смог сохранить: '..code), 
-                                base_color)
-                            end
-                        end
-
-                    end
-                end
-            end
-]]
